@@ -42,9 +42,12 @@ function getPropTypes(PropTypes) {
     // layer/view/controller settings
     layers: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
     layerFilter: PropTypes.func,
+
     views: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
     viewState: PropTypes.object,
     controller: PropTypes.func,
+    onViewStateChange: PropTypes.func,
+
     effects: PropTypes.arrayOf(PropTypes.instanceOf(Effect)),
 
     // GL settings
@@ -100,9 +103,12 @@ export default class Deck {
     this.controller = null;
     this.stats = new Stats({id: 'deck.gl'});
 
+    this.viewState = props.initialViewState || null; // Internal view state if no callback is supplied
+
     // Bind methods
     this._onRendererInitialized = this._onRendererInitialized.bind(this);
     this._onRenderFrame = this._onRenderFrame.bind(this);
+    this._onViewStateChange = this._onViewStateChange.bind(this);
 
     this.canvas = this._createCanvas(props);
     this.controller = this._createController(props);
@@ -147,7 +153,6 @@ export default class Deck {
     if (this.layerManager) {
       this.layerManager.setParameters(newProps);
     }
-
     // Update animation loop TODO - unify setParameters/setOptions/setProps etc naming.
     this.animationLoop.setProps(newProps);
 
@@ -254,7 +259,9 @@ export default class Deck {
     if (Controller) {
       return new Controller(
         Object.assign({}, this._getViewState(props), props, {
-          canvas: this.canvas
+          canvas: this.canvas,
+          // If no controller provided, set an internal controller
+          onViewStateChange: props.onViewStateChange || this._onViewStateChange
         })
       );
     }
@@ -278,14 +285,23 @@ export default class Deck {
     });
   }
 
+  // Get the most relevant view state, and ensure numeric width and height is added
   _getViewState(props) {
-    return Object.assign({}, props.viewState || {}, {
+    return Object.assign({}, this.viewState || props.viewState || {}, {
       width: this.width,
       height: this.height
     });
   }
 
   // Callbacks
+
+  _onViewStateChange({viewState}) {
+    this.viewState = viewState;
+    this.layerManager.setParameters({viewState});
+    if (this.props.onResize) {
+      this.props.onResize({width: this.width, height: this.height});
+    }
+  }
 
   _onRendererInitialized({gl, canvas}) {
     setParameters(gl, {
