@@ -42,12 +42,10 @@ function getPropTypes(PropTypes) {
     // layer/view/controller settings
     layers: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
     layerFilter: PropTypes.func,
-
     views: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
     viewState: PropTypes.object,
     controller: PropTypes.func,
     onViewStateChange: PropTypes.func,
-
     effects: PropTypes.arrayOf(PropTypes.instanceOf(Effect)),
 
     // GL settings
@@ -102,7 +100,6 @@ export default class Deck {
     this.effectManager = null;
     this.controller = null;
     this.stats = new Stats({id: 'deck.gl'});
-
     this.viewState = props.initialViewState || null; // Internal view state if no callback is supplied
 
     // Bind methods
@@ -153,6 +150,7 @@ export default class Deck {
     if (this.layerManager) {
       this.layerManager.setParameters(newProps);
     }
+
     // Update animation loop TODO - unify setParameters/setOptions/setProps etc naming.
     this.animationLoop.setProps(newProps);
 
@@ -298,6 +296,7 @@ export default class Deck {
   _onViewStateChange({viewState}) {
     this.viewState = viewState;
     this.layerManager.setParameters({viewState});
+    // NOTE: Used to inform React component that it needs to update
     if (this.props.onResize) {
       this.props.onResize({width: this.width, height: this.height});
     }
